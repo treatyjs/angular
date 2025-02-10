@@ -1464,6 +1464,7 @@ export class NgCompiler {
       new ComponentDecoratorHandler(
         reflector,
         evaluator,
+        localMetaRegistry,
         metaRegistry,
         metaReader,
         scopeReader,

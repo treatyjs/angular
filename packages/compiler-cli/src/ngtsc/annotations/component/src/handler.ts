@@ -74,6 +74,7 @@ import {
   HostDirectivesResolver,
   MatchSource,
   MetadataReader,
+  MetadataReaderWithIndex,
   MetadataRegistry,
   MetaKind,
   NgModuleMeta,
@@ -219,6 +220,7 @@ export class ComponentDecoratorHandler
   constructor(
     private reflector: ReflectionHost,
     private evaluator: PartialEvaluator,
+    private localMetaRegistry: MetadataReaderWithIndex,
     private metaRegistry: MetadataRegistry,
     private metaReader: MetadataReader,
     private scopeReader: ComponentScopeReader,
@@ -1169,6 +1171,34 @@ export class ComponentDecoratorHandler
       const dependencies = isModuleScope ? scope.compilation.dependencies : scope.dependencies;
       // Dependencies from the `@Component.deferredImports` field.
       const explicitlyDeferredDependencies = getExplicitlyDeferredDeps(scope);
+
+      // We now need to match any known types that are imported to its meta data
+      if (metadata.isStandalone) {
+        for (const directivesClass of this.localMetaRegistry.getKnown(MetaKind.Directive)) {
+          if (this.importTracker.findClassImports(node.getSourceFile(), directivesClass).found) {
+            const res = this.metaReader.getDirectiveMetadata(new Reference(directivesClass));
+            if (res) {
+              dependencies.push(res);
+            }
+          }
+        }
+        for (const directivesClass of this.localMetaRegistry.getKnown(MetaKind.NgModule)) {
+          if (this.importTracker.findClassImports(node.getSourceFile(), directivesClass).found) {
+            const res = this.metaReader.getNgModuleMetadata(new Reference(directivesClass));
+            if (res) {
+              dependencies.push(res);
+            }
+          }
+        }
+        for (const directivesClass of this.localMetaRegistry.getKnown(MetaKind.Pipe)) {
+          if (this.importTracker.findClassImports(node.getSourceFile(), directivesClass).found) {
+            const res = this.metaReader.getPipeMetadata(new Reference(directivesClass));
+            if (res) {
+              dependencies.push(res);
+            }
+          }
+        }
+      }
 
       // Mark the component is an NgModule-based component with its NgModule in a different file
       // then mark this file for extra import generation
